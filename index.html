@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleek Image Cropper</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Cropper.js for cropping functionality -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
+    <!-- Google Fonts for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles for a polished look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark background */
+        }
+
+        .btn {
+            @apply px-5 py-2.5 text-sm font-medium text-white bg-gray-800 rounded-lg focus:ring-4 focus:outline-none focus:ring-gray-300 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+        }
+        .btn-primary {
+            @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500;
+        }
+        .btn-secondary {
+            @apply bg-gray-700 hover:bg-gray-600 focus:ring-gray-500;
+        }
+
+        /* Cropper.js custom styling */
+        .cropper-view-box,
+        .cropper-face {
+            border-radius: 0.5rem;
+        }
+
+        .cropper-line, .cropper-point {
+            background-color: #38bdf8; /* Light blue for crop handles */
+        }
+        
+        /* Modal styles */
+        .modal {
+            @apply fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300;
+        }
+        
+        .modal-content {
+            @apply bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300;
+        }
+
+        /* Custom slider styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4b5563;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-5xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white">Image Cropper & Editor</h1>
+            <p class="text-gray-400 mt-2">Upload, crop, apply filters, and download your image.</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="bg-gray-900 p-4 sm:p-8 rounded-2xl shadow-xl border border-gray-700">
+            <!-- Image Display Area -->
+            <div id="image-container" class="mb-6 w-full h-96 bg-gray-800 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-600 overflow-hidden">
+                <div id="placeholder" class="text-center text-gray-500">
+                    <svg class="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 4v.01M28 8l-4 4m0 0l4 4m-4-4h12m-6 4v12m-4-8H8m4 8h4m-4-4h4m12-4h.01M32 36a4 4 0 01-4 4H12a4 4 0 01-4-4V12a4 4 0 014-4h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <p class="mt-2">Your image will appear here</p>
+                    <p class="text-xs">Start by uploading an image.</p>
+                </div>
+                <img id="image" class="hidden max-w-full max-h-full">
+            </div>
+
+            <!-- Controls -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <label for="upload" class="btn btn-primary cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    Upload
+                </label>
+                <input type="file" id="upload" class="hidden" accept="image/*">
+                
+                <button id="cropBtn" class="btn btn-secondary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17 6v8h-2V6h2zM5 6v8H3V6h2zm6 12V2h2v16h-2z" clip-rule="evenodd" fill-rule="evenodd"></path><path d="M4 8H2v4h2V8zm12 0h-2v4h2V8z"></path></svg>
+                    Crop
+                </button>
+
+                <button id="filtersBtn" class="btn btn-secondary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" /></svg>
+                    Filters
+                </button>
+
+                <button id="downloadBtn" class="btn btn-secondary" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                    Download
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Filters Modal -->
+    <div id="filtersModal" class="modal hidden opacity-0">
+        <div class="modal-content scale-95">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-white">Image Filters</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Preset Filters -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button class="filter-preset-btn btn btn-secondary" data-filter="grayscale">Grayscale</button>
+                    <button class="filter-preset-btn btn btn-secondary" data-filter="sepia">Sepia</button>
+                    <button class="filter-preset-btn btn btn-secondary" data-filter="invert">Invert</button>
+                    <button id="resetFiltersBtn" class="btn btn-secondary">Reset</button>
+                </div>
+                
+                <!-- Sliders -->
+                <div class="space-y-3 pt-4">
+                    <div>
+                        <label for="brightness" class="block mb-1 text-sm font-medium">Brightness</label>
+                        <input type="range" id="brightness" min="0" max="200" value="100" class="filter-slider">
+                    </div>
+                    <div>
+                        <label for="contrast" class="block mb-1 text-sm font-medium">Contrast</label>
+                        <input type="range" id="contrast" min="0" max="200" value="100" class="filter-slider">
+                    </div>
+                     <div>
+                        <label for="saturate" class="block mb-1 text-sm font-medium">Saturation</label>
+                        <input type="range" id="saturate" min="0" max="200" value="100" class="filter-slider">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadInput = document.getElementById('upload');
+        const imageEl = document.getElementById('image');
+        const placeholder = document.getElementById('placeholder');
+        
+        const cropBtn = document.getElementById('cropBtn');
+        const filtersBtn = document.getElementById('filtersBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const filtersModal = document.getElementById('filtersModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const filterPresetBtns = document.querySelectorAll('.filter-preset-btn');
+        const filterSliders = document.querySelectorAll('.filter-slider');
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+        let cropper;
+        let originalImageDataURL; // Stores the latest raw image data (after upload or crop)
+        let currentCanvas; // A canvas for applying filters without affecting the original
+
+        // Filter state
+        let filters = {
+            brightness: 100, contrast: 100, saturate: 100,
+            grayscale: 0, sepia: 0, invert: 0,
+        };
+
+        // --- Core Functions ---
+
+        /**
+         * Initializes or re-initializes the Cropper.js instance.
+         */
+        function initCropper() {
+            if (cropper) {
+                cropper.destroy();
+            }
+            cropper = new Cropper(imageEl, {
+                viewMode: 1,
+                autoCropArea: 0.9,
+                responsive: true,
+                background: false,
+                checkOrientation: false,
+                // Fires when the cropper is ready
+                ready() {
+                    // Re-apply filters if any exist, e.g., after a crop action
+                    applyFilters();
+                }
+            });
+        }
+
+        /**
+         * Enables or disables control buttons.
+         * @param {boolean} state - True to enable, false to disable.
+         */
+        function setButtonsState(state) {
+            cropBtn.disabled = !state;
+            filtersBtn.disabled = !state;
+            downloadBtn.disabled = !state;
+        }
+
+        /**
+         * Applies the current filter values to the image in the cropper.
+         */
+        function applyFilters() {
+            if (!currentCanvas || !cropper || !cropper.built) return;
+
+            const ctx = currentCanvas.getContext('2d');
+            const img = new Image();
+            img.src = originalImageDataURL;
+            img.onload = () => {
+                // Ensure canvas matches original image dimensions
+                currentCanvas.width = img.width;
+                currentCanvas.height = img.height;
+                
+                // Apply filters to the offscreen canvas
+                ctx.filter = `
+                    brightness(${filters.brightness}%) 
+                    contrast(${filters.contrast}%) 
+                    saturate(${filters.saturate}%) 
+                    grayscale(${filters.grayscale}%) 
+                    sepia(${filters.sepia}%) 
+                    invert(${filters.invert}%)`;
+                ctx.drawImage(img, 0, 0);
+                
+                // Get the filtered image data and update the cropper
+                const filteredDataURL = currentCanvas.toDataURL();
+                cropper.replace(filteredDataURL);
+            };
+        }
+
+        /**
+         * Resets all filters to their default values.
+         */
+        function resetAllFilters() {
+             filters = {
+                brightness: 100, contrast: 100, saturate: 100,
+                grayscale: 0, sepia: 0, invert: 0,
+            };
+            // Update slider UI
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            document.getElementById('saturate').value = 100;
+            applyFilters();
+        }
+
+        // --- Event Listeners ---
+
+        // Handle image upload
+        uploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    originalImageDataURL = event.target.result;
+                    
+                    placeholder.classList.add('hidden');
+                    imageEl.classList.remove('hidden');
+
+                    // Create the offscreen canvas for filtering
+                    if (!currentCanvas) {
+                        currentCanvas = document.createElement('canvas');
+                    }
+                    
+                    // Set the image source, which will trigger the cropper initialization
+                    imageEl.src = originalImageDataURL;
+                    initCropper();
+                    setButtonsState(true);
+                    resetAllFilters(); // Reset filters for the new image
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle crop button click
+        cropBtn.addEventListener('click', () => {
+            if (!cropper) return;
+            
+            const croppedCanvas = cropper.getCroppedCanvas();
+            if (!croppedCanvas) return;
+
+            // The cropped image is now our new base image.
+            originalImageDataURL = croppedCanvas.toDataURL();
+
+            // Replace the cropper's content. The 'ready' event in initCropper
+            // will handle re-applying the filters.
+            imageEl.src = originalImageDataURL;
+            initCropper();
+        });
+
+        // Handle download button click
+        downloadBtn.addEventListener('click', () => {
+            if (!cropper) return;
+
+            // Get the final cropped and filtered canvas from the cropper
+            const finalCanvas = cropper.getCroppedCanvas({
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+
+            if (!finalCanvas) return;
+
+            const link = document.createElement('a');
+            link.download = 'edited-image.png';
+            link.href = finalCanvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // --- Filter Modal Logic ---
+        
+        filtersBtn.addEventListener('click', () => {
+            filtersModal.classList.remove('hidden');
+            setTimeout(() => filtersModal.classList.remove('opacity-0'), 10);
+            setTimeout(() => filtersModal.querySelector('.modal-content').classList.remove('scale-95'), 10);
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            filtersModal.querySelector('.modal-content').classList.add('scale-95');
+            filtersModal.classList.add('opacity-0');
+            setTimeout(() => filtersModal.classList.add('hidden'), 300);
+        });
+
+        filterPresetBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filterType = e.target.dataset.filter;
+                filters[filterType] = filters[filterType] === 0 ? 100 : 0;
+                if (filterType === 'grayscale' && filters.grayscale > 0) filters.sepia = 0;
+                if (filterType === 'sepia' && filters.sepia > 0) filters.grayscale = 0;
+                applyFilters();
+            });
+        });
+
+        filterSliders.forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                filters[e.target.id] = e.target.value;
+                applyFilters();
+            });
+        });
+
+        resetFiltersBtn.addEventListener('click', resetAllFilters);
+
+    </script>
+</body>
+</html>
